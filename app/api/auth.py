@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.user import UserRegister, UserLogin, UserOut, Token
 from app.services.auth import hash_password, authenticate_user, create_access_token
@@ -60,5 +61,28 @@ async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль")
 
-    token = create_access_token(data={"sub": str(user.id)})
+    token = create_access_token(data={"sub": str(user.id), "ver": user.token_version})
     return Token(access_token=token, token_type="bearer")
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_200_OK,
+    summary="Выйти из системы (logout)",
+    description=(
+        "Аннулирует текущий JWT-токен. После вызова токен перестаёт работать — "
+        "все последующие запросы с ним будут возвращать 401. "
+        "Для выхода нужно передать токен в заголовке Authorization."
+    ),
+    responses={
+        200: {"description": "Выход выполнен, токен аннулирован"},
+        401: {"description": "Не передан или невалидный токен"},
+    },
+)
+async def logout(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    current_user.token_version += 1
+    await db.commit()
+    return {"detail": "Выход выполнен успешно"}

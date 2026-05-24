@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api import auth, tests, questions, answers, user_answers
+from app.api import auth, tests, questions, user_answers
 
 logger = logging.getLogger("uvicorn")
 
@@ -26,7 +26,6 @@ app = FastAPI(
 app.include_router(auth.router)
 app.include_router(tests.router)
 app.include_router(questions.router)
-app.include_router(answers.router)
 app.include_router(user_answers.router)
 
 

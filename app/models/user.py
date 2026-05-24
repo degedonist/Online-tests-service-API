@@ -12,6 +12,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    token_version = Column(Integer, default=0, nullable=False)
 
     tests = relationship("Test", back_populates="owner", cascade="all, delete-orphan")
     answers = relationship("UserAnswer", back_populates="user", cascade="all, delete-orphan")
