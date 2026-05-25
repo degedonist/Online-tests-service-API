@@ -4,13 +4,13 @@ install:
 	pip install -r requirements.txt
 
 up:
-	docker compose up -d && echo "📄 Swagger docs: http://localhost:8000/docs"
+	docker compose up --build
 
 down:
 	docker compose down
 
 restart:
-	docker compose restart && echo "📄 Swagger docs: http://localhost:8000/docs"
+	docker compose restart
 
 logs:
 	docker compose logs -f

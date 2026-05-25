@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import bcrypt
+from fastapi import HTTPException
 from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,3 +37,20 @@ async def authenticate_user(db: AsyncSession, username: str, password: str) -> O
 async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
     result = await db.execute(select(User).where(User.id == user_id))
     return result.scalar_one_or_none()
+
+
+async def register_user(db: AsyncSession, username: str, password: str) -> User:
+    result = await db.execute(select(User).where(User.username == username))
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Пользователь уже существует")
+
+    user = User(username=username, hashed_password=hash_password(password))
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def logout_user(db: AsyncSession, user: User) -> None:
+    user.token_version += 1
+    await db.commit()

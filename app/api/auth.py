@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.user import UserRegister, UserLogin, UserOut, Token
-from app.services.auth import hash_password, authenticate_user, create_access_token
+from app.services.auth import (
+    register_user, authenticate_user, create_access_token, logout_user,
+)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -31,15 +32,7 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
     if data.password != data.confirm_password:
         raise HTTPException(status_code=400, detail="Пароли не совпадают")
 
-    result = await db.execute(select(User).where(User.username == data.username))
-    if result.scalar_one_or_none():
-        raise HTTPException(status_code=409, detail="Пользователь уже существует")
-
-    user = User(username=data.username, hashed_password=hash_password(data.password))
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-    return user
+    return await register_user(db, data.username, data.password)
 
 
 @router.post(
@@ -83,6 +76,5 @@ async def logout(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    current_user.token_version += 1
-    await db.commit()
+    await logout_user(db, current_user)
     return {"detail": "Выход выполнен успешно"}
